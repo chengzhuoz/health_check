@@ -1,27 +1,33 @@
-# 服务健康检查
+# health_check
 
-Django + Celery 写的服务巡检项目，记录巡检结果，按团队和环境统计每天的健康率。
+用 Django 和 Celery 做的服务健康检查，能管理团队和服务、手动发起巡检、统计每天的健康率。
 
-## 本地运行
+## 运行
+
+先准备好 Python 和 Redis，在项目目录执行：
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-$env:DJANGO_SECRET_KEY = '换成你自己的随机密钥，几个进程保持一致'
+$env:DJANGO_SECRET_KEY = '改成自己的随机密钥'
 python manage.py migrate
 python manage.py runserver
 ```
 
-任务队列使用 Redis，默认地址是 `redis://localhost:6379/0`，可以通过环境变量 `CELERY_BROKER_URL` 修改。
-启动 Redis 后，另外开两个终端，激活虚拟环境并设置同一个 `DJANGO_SECRET_KEY`：
+Redis 默认用 `localhost:6379` 的 0 号库，地址可以通过环境变量 `CELERY_BROKER_URL` 修改。
+
+再开两个终端，进入项目目录，激活虚拟环境，设置和上面一样的 `DJANGO_SECRET_KEY`，分别运行：
 
 ```powershell
 celery -A health_check worker --pool=solo -l info
+```
+
+```powershell
 celery -A health_check beat -l info
 ```
 
-Windows 本地调试使用 `solo`，Celery 官方不支持 Windows，部署时使用 Linux。
+Windows 本地调试用 `solo`，正式部署用 Linux，Celery 官方不支持 Windows。
 
 ## 接口
 
@@ -29,17 +35,15 @@ Windows 本地调试使用 `solo`，Celery 官方不支持 Windows，部署时�
 | --- | --- |
 | `/api/teams/` | 团队增删改查 |
 | `/api/services/` | 服务增删改查 |
-| `/api/services/{id}/trigger_check/` | POST 提交单个服务的巡检任务 |
+| `/api/services/{id}/trigger_check/` | POST 发起巡检 |
 
-新增服务时传 `team`、`name`、`environment`、`health_check_url`、`token`。环境可选 `dev`、`test`、`prod`，默认 `dev`。Token 只接收写入，不在接口响应中返回。
+新增服务传 `team`、`name`、`health_check_url`、`token`。`environment` 可选 `dev`、`test`、`prod`，不传就是 `dev`。查询不会返回 Token。
 
-## 定时任务
+每 8 小时换一次本地 Token，每天零点统计昨天的数据，时间按 UTC 算。巡检需要手动调用接口。
 
-每 8 小时轮换数据库中的 Token，每天零点统计昨天的巡检结果。目前时区是 UTC，可以修改 `TIME_ZONE`。巡检通过接口按需触发，没有配置自动巡检周期。
+Token 目前只是 Base64 编码，换 Token 后还要和被巡检的服务对接。接口没做登录限制，目前用于本地练习。
 
-当前 Token 使用 Base64 编码，轮换也只修改本地数据库；对方服务如何接受新 Token 需要另外对接。接口还没有登录权限限制，仅用于本地练习。
-
-## 检查
+## 测试
 
 ```powershell
 python manage.py check

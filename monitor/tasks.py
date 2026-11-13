@@ -70,16 +70,16 @@ def calculate_daily_health_rate():
     daily_stats = []
     for stat in stats:
         health_rate = Decimal(stat['success']) * 100 / stat['total']
-        daily_stats.append(DailyStatistics(
+        daily_stat = DailyStatistics(
             date=yesterday,
             team_id=stat['service__team_id'],
             environment=stat['service__environment'],
             total_checks=stat['total'],
             success_checks=stat['success'],
             health_rate=health_rate.quantize(Decimal('0.01')),
-        ))
+        )
+        daily_stats.append(daily_stat)
     if daily_stats:
-        # 重跑时更新当天的结果，避免重复插入
         DailyStatistics.objects.bulk_create(
             daily_stats,
             update_conflicts=True,

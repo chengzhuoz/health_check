@@ -22,7 +22,6 @@ class ServiceViewSet(viewsets.ModelViewSet):
     def trigger_check(self, request, pk=None):
         service = self.get_object()
         try:
-            # 这里只提交任务，实际巡检由 worker 执行
             task = trigger_health_check.apply_async(args=[service.id], retry=False)
         except (OperationalError, RedisError):
             return Response(

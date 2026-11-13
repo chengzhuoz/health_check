@@ -4,7 +4,6 @@ from django.db import models
 
 
 def encrypt_token(raw_token):
-    # 这里只做 Base64 编码，还不是真正的加密
     return base64.b64encode(raw_token.encode()).decode()
 
 

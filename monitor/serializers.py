@@ -17,7 +17,6 @@ class ServiceSerializer(serializers.ModelSerializer):
         fields = ['id', 'team', 'name', 'environment', 'health_check_url', 'token']
 
     def validate_token(self, value):
-        # 中文占多个字节，要按编码后的长度检查
         if len(value.encode()) > 189:
             raise serializers.ValidationError('Token 不能超过 189 字节。')
         return value
